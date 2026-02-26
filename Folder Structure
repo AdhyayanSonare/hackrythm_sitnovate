@@ -1,0 +1,37 @@
+emergent-geopolitics-sim/
+│
+├── src/
+│   ├── engine/
+│   │   ├── simulationEngine.js      # main loop (your current function, cleaned)
+│   │   ├── resourceSystem.js        # water/food/energy updates
+│   │   ├── economySystem.js         # GDP + growth logic
+│   │   ├── populationSystem.js      # population changes
+│   │   ├── eventSystem.js           # drought, tech events
+│   │   └── tradeSystem.js           # region-to-region trade (fix this!)
+│   │
+│   ├── agents/
+│   │   ├── baseAgent.js             # decision interface
+│   │   └── heuristicAgent.js        # current "aiStrategy"
+│   │
+│   ├── config/
+│   │   ├── regions.js               # initial region states
+│   │   └── parameters.js            # simulation constants
+│   │
+│   ├── utils/
+│   │   └── helpers.js               # math, normalization, etc.
+│   │
+│   └── index.js                    # entry point (run simulation)
+│
+├── data/
+│   └── logs/                       # simulation outputs (JSON per run)
+│
+├── visualization/
+│   ├── dashboard.html              # simple visualization UI
+│   └── viz.js                      # renders state (graphs/network)
+│
+├── docs/
+│   └── design.md                   # explain system architecture
+│
+├── .gitignore
+├── package.json
+└── README.md
