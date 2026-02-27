@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './index.css';
 import { regionsData } from './utils/regionsData';
 import { MainLayout } from './layout/MainLayout';

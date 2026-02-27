@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 @layer base {
   :root {
@@ -10,6 +9,11 @@
     --secondary-accent: #7C3AED;
     --glass-bg: rgba(15, 23, 42, 0.55);
     --glass-border: rgba(255, 255, 255, 0.12);
+    --background-dark: #050b14;
+    --accent-red: #f87171;
+    --accent-cyan: #22d3ee;
+    --accent-amber: #fbbf24;
+    --accent-green: #4ade80;
   }
 
   ::-webkit-scrollbar {
@@ -97,5 +101,11 @@
 
   .bg-noise {
     background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"noiseFilter\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.65\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23noiseFilter)\"/%3E%3C/svg%3E');
+  }
+
+  .glass-hud {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 }

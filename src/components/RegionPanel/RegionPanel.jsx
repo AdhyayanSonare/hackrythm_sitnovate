@@ -83,15 +83,15 @@ export const RegionPanel = ({ region, onClose }) => {
                     <div className="flex bg-[#03060c] border-b border-white/5 text-xs font-mono">
                         <div className="flex-1 p-3 border-r border-white/5 flex flex-col gap-1 items-center justify-center text-slate-400">
                             <span className="text-accent-red font-bold text-sm tracking-wider">{region?.stats?.temp}</span>
-                            <span className="uppercase text-[10px] track-widest">Core Temp</span>
+                            <span className="uppercase text-[10px] tracking-widest">Core Temp</span>
                         </div>
                         <div className="flex-1 p-3 border-r border-white/5 flex flex-col gap-1 items-center justify-center text-slate-400">
                             <span className="text-accent-cyan font-bold text-sm tracking-wider">{region?.stats?.weather}</span>
-                            <span className="uppercase text-[10px] track-widest">Environment</span>
+                            <span className="uppercase text-[10px] tracking-widest">Environment</span>
                         </div>
                         <div className="flex-1 p-3 flex flex-col gap-1 items-center justify-center text-slate-400">
                             <span className="text-accent-amber font-bold text-sm tracking-wider">{region?.stats?.pop}</span>
-                            <span className="uppercase text-[10px] track-widest">Population</span>
+                            <span className="uppercase text-[10px] tracking-widest">Population</span>
                         </div>
                     </div>
 

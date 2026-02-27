@@ -9,7 +9,7 @@ export const RegionOverlayLayer = ({ region, isSelected, onClick }) => {
       `}
             style={{
                 ...region.style,
-                animation: `float-medium 6s ease-in-out infinite`,
+                animation: `float 6s ease-in-out infinite`,
                 animationDelay: region.delay
             }}
         >
