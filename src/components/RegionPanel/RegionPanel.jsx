@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../GlassContainer/GlassContainer';
 import { Tabs } from '../Tabs/Tabs';
+import { formatGDP, formatPop, formatResource } from '../../engine/simulationEngine';
 
 const TAB_DATA = [
     { id: 'overview', label: 'Overview' },
     { id: 'ai_brain', label: 'AI Brain' },
-    { id: 'challenges', label: 'Challenges' },
+    { id: 'resources', label: 'Resources' },
     { id: 'simulation', label: 'Simulation' },
-    { id: 'insights', label: 'Insights' },
-    { id: 'leaderboard', label: 'Leaderboard' }
+    { id: 'challenges', label: 'Challenges' },
+    { id: 'leaderboard', label: 'Leaderboard' },
 ];
 
 export const RegionPanel = ({ region, onClose }) => {
@@ -40,7 +41,7 @@ export const RegionPanel = ({ region, onClose }) => {
             <div
                 className={`
           fixed bottom-0 left-0 right-0 md:left-auto md:right-0 md:top-0 md:h-full
-          z-50 w-full md:w-[480px] lg:w-[540px] h-[75vh] md:h-screen
+          z-50 w-full md:w-120 lg:w-135 h-[75vh] md:h-screen
           transform transition-transform duration-700 cubic-bezier(0.16, 1, 0.3, 1)
           ${isOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full md:translate-y-0'}
         `}
@@ -79,19 +80,27 @@ export const RegionPanel = ({ region, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Regional Stats Bar */}
+                    {/* Regional Stats Bar — live from simulation */}
                     <div className="flex bg-[#03060c] border-b border-white/5 text-xs font-mono">
                         <div className="flex-1 p-3 border-r border-white/5 flex flex-col gap-1 items-center justify-center text-slate-400">
-                            <span className="text-accent-red font-bold text-sm tracking-wider">{region?.stats?.temp}</span>
-                            <span className="uppercase text-[10px] tracking-widest">Core Temp</span>
+                            <span className="text-accent-amber font-bold text-sm tracking-wider">
+                                {region?.simState ? formatPop(region.simState.population) : region?.stats?.pop}
+                            </span>
+                            <span className="uppercase text-[10px] tracking-widest">Population</span>
                         </div>
                         <div className="flex-1 p-3 border-r border-white/5 flex flex-col gap-1 items-center justify-center text-slate-400">
-                            <span className="text-accent-cyan font-bold text-sm tracking-wider">{region?.stats?.weather}</span>
-                            <span className="uppercase text-[10px] tracking-widest">Environment</span>
+                            <span className="text-accent-green font-bold text-sm tracking-wider">
+                                {region?.simState ? formatGDP(region.simState.GDP) : '—'}
+                            </span>
+                            <span className="uppercase text-[10px] tracking-widest">GDP</span>
                         </div>
                         <div className="flex-1 p-3 flex flex-col gap-1 items-center justify-center text-slate-400">
-                            <span className="text-accent-amber font-bold text-sm tracking-wider">{region?.stats?.pop}</span>
-                            <span className="uppercase text-[10px] tracking-widest">Population</span>
+                            <span className={`font-bold text-sm tracking-wider ${region?.simState
+                                ? region.simState.stabilityIndex >= 0.7 ? 'text-accent-green' : region.simState.stabilityIndex >= 0.4 ? 'text-accent-amber' : 'text-accent-red'
+                                : 'text-accent-cyan'}`}>
+                                {region?.simState ? (region.simState.stabilityIndex * 100).toFixed(1) + '%' : region?.stats?.temp}
+                            </span>
+                            <span className="uppercase text-[10px] tracking-widest">Stability</span>
                         </div>
                     </div>
 
@@ -114,18 +123,35 @@ export const RegionPanel = ({ region, onClose }) => {
                                             <GlassCard noPadding className="p-4" hover>
                                                 <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-2">Network Status</h4>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`w-2.5 h-2.5 rounded-full ${region?.statusColor} shadow-[0_0_8px] shadow-${region?.statusColor.split('-')[1]}-500/50`}></span>
+                                                    <span className={`w-2.5 h-2.5 rounded-full ${region?.statusColor}`}></span>
                                                     <span className="text-white font-mono text-sm tracking-widest">{region?.status}</span>
                                                 </div>
                                             </GlassCard>
                                             <GlassCard noPadding className="p-4" hover>
-                                                <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-2">Security Level</h4>
+                                                <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-2">Environment</h4>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-primary text-sm animate-spin-slow">security</span>
-                                                    <span className="text-white font-mono text-sm tracking-widest">LEVEL 4</span>
+                                                    <span className="material-symbols-outlined text-primary text-sm">{region?.icon}</span>
+                                                    <span className="text-white font-mono text-sm tracking-widest">{region?.stats?.temp} · {region?.stats?.weather}</span>
                                                 </div>
                                             </GlassCard>
                                         </div>
+                                        {/* Active Events */}
+                                        {region?.simState?.activeEvents?.length > 0 && (
+                                            <GlassCard className="border-accent-amber/20">
+                                                <h4 className="text-[10px] uppercase text-accent-amber font-mono mb-2 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-xs">bolt</span>
+                                                    Active Events
+                                                </h4>
+                                                <div className="space-y-1">
+                                                    {region.simState.activeEvents.map((evt, i) => (
+                                                        <div key={i} className="flex items-center justify-between text-xs font-mono">
+                                                            <span className="text-slate-300">{evt.type}</span>
+                                                            <span className="text-slate-500">Severity {evt.severity} · {evt.duration}T left</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </GlassCard>
+                                        )}
                                     </div>
                                 )}
 
@@ -139,22 +165,24 @@ export const RegionPanel = ({ region, onClose }) => {
                                                         <span className="material-symbols-outlined animate-pulse text-lg">psychology</span>
                                                         Neural Link Live
                                                     </h3>
-                                                    <span className="text-[10px] font-mono text-accent-cyan animate-pulse">SYNCING...</span>
+                                                    <span className={`text-[10px] font-mono ${region?.aiFeed ? 'text-accent-green' : 'text-accent-cyan animate-pulse'}`}>
+                                                        {region?.aiFeed ? 'CONNECTED' : 'AWAITING...'}
+                                                    </span>
                                                 </div>
 
                                                 {region?.aiFeed ? (
                                                     <div className="space-y-4">
                                                         <div>
                                                             <h4 className="text-[10px] text-slate-400 font-mono uppercase mb-1">Population Trajectory</h4>
-                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.populationTrajectory || region.aiFeed.population}</p>
+                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.populationTrajectory}</p>
                                                         </div>
                                                         <div>
                                                             <h4 className="text-[10px] text-slate-400 font-mono uppercase mb-1">Resource Utilization</h4>
-                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.resourceUtilization || region.aiFeed.resources}</p>
+                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.resourceUtilization}</p>
                                                         </div>
                                                         <div>
                                                             <h4 className="text-[10px] text-slate-400 font-mono uppercase mb-1">Geopolitical & Events</h4>
-                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.geopoliticalRelations || region.aiFeed.diplomacy || region.aiFeed.geopolitics}</p>
+                                                            <p className="text-sm text-slate-200 leading-relaxed font-body">{region.aiFeed.geopoliticalRelations}</p>
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -164,6 +192,102 @@ export const RegionPanel = ({ region, onClose }) => {
                                                         <p className="text-[10px] mt-1">Start engine to initiate logic feed.</p>
                                                     </div>
                                                 )}
+                                            </div>
+                                        </GlassCard>
+                                    </div>
+                                )}
+
+                                {activeTab === 'resources' && (
+                                    <div className="animate-fade-in-up space-y-4">
+                                        {region?.simState ? (
+                                            <>
+                                                {/* Resource Bars */}
+                                                {[
+                                                    { key: 'water', label: 'Water Reserves', icon: 'water_drop', color: 'bg-blue-400', textColor: 'text-blue-400', value: region.simState.resourceStock.water, max: 150000 },
+                                                    { key: 'food', label: 'Food Stock', icon: 'restaurant', color: 'bg-green-400', textColor: 'text-green-400', value: region.simState.resourceStock.food, max: 120000 },
+                                                    { key: 'energy', label: 'Energy Grid', icon: 'bolt', color: 'bg-amber-400', textColor: 'text-amber-400', value: region.simState.resourceStock.energy, max: 150000 },
+                                                ].map(res => {
+                                                    const pct = Math.min(100, (res.value / res.max) * 100);
+                                                    return (
+                                                        <GlassCard key={res.key}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <h4 className={`text-[10px] uppercase font-mono flex items-center gap-1 ${res.textColor}`}>
+                                                                    <span className="material-symbols-outlined text-xs">{res.icon}</span>
+                                                                    {res.label}
+                                                                </h4>
+                                                                <span className="text-white font-mono text-sm">{formatResource(res.value)}</span>
+                                                            </div>
+                                                            <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${res.color} rounded-full transition-all duration-700 ease-out`}
+                                                                    style={{ width: `${pct}%` }}
+                                                                />
+                                                            </div>
+                                                        </GlassCard>
+                                                    );
+                                                })}
+
+                                                {/* Infrastructure & Tech */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <GlassCard noPadding className="p-4">
+                                                        <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-1">Infrastructure</h4>
+                                                        <span className="text-white font-mono text-lg">{region.simState.infrastructureLevel.toFixed(1)}</span>
+                                                        <span className="text-slate-500 text-xs font-mono">/10</span>
+                                                    </GlassCard>
+                                                    <GlassCard noPadding className="p-4">
+                                                        <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-1">Technology</h4>
+                                                        <span className="text-white font-mono text-lg">{region.simState.technologyLevel.toFixed(1)}</span>
+                                                        <span className="text-slate-500 text-xs font-mono">/10</span>
+                                                    </GlassCard>
+                                                </div>
+
+                                                {/* Trade Partners */}
+                                                {region.simState.tradePartners?.length > 0 && (
+                                                    <GlassCard className="border-primary/20">
+                                                        <h4 className="text-[10px] uppercase text-primary font-mono mb-2 flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-xs">swap_horiz</span>
+                                                            Active Trade
+                                                        </h4>
+                                                        {region.simState.tradePartners.map((tp, i) => (
+                                                            <div key={i} className="flex items-center justify-between text-xs font-mono">
+                                                                <span className="text-slate-300">{tp.terms}</span>
+                                                                <span className="text-slate-500">{formatResource(tp.volume)} units → {tp.partnerRegion}</span>
+                                                            </div>
+                                                        ))}
+                                                    </GlassCard>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <GlassCard>
+                                                <div className="py-8 flex flex-col items-center justify-center text-center text-slate-500">
+                                                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">inventory_2</span>
+                                                    <p className="text-sm font-mono">No resource data yet.</p>
+                                                    <p className="text-[10px] mt-1">Start the simulation engine.</p>
+                                                </div>
+                                            </GlassCard>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'simulation' && (
+                                    <div className="animate-fade-in-up space-y-4">
+                                        <GlassCard className="border-accent-cyan/30 bg-accent-cyan/5 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-accent-cyan/10 blur-[50px] rounded-full mix-blend-screen pointer-events-none"></div>
+                                            <div className="flex items-start gap-3 relative z-10">
+                                                <span className="material-symbols-outlined text-accent-cyan animate-spin-slow mt-0.5">memory</span>
+                                                <div>
+                                                    <h3 className="font-display text-accent-cyan font-bold tracking-wider mb-2 text-sm uppercase">Simulated Output</h3>
+                                                    <p className="text-slate-300 text-sm leading-relaxed font-mono">{region?.simulation}</p>
+                                                </div>
+                                            </div>
+                                        </GlassCard>
+                                        <GlassCard className="border-primary/30 bg-primary/5">
+                                            <div className="flex items-start gap-3">
+                                                <span className="material-symbols-outlined text-primary mt-0.5">lightbulb</span>
+                                                <div>
+                                                    <h3 className="font-display text-primary font-bold tracking-wider mb-2 text-sm uppercase">Intel Report</h3>
+                                                    <p className="text-slate-300 text-sm leading-relaxed">{region?.insights}</p>
+                                                </div>
                                             </div>
                                         </GlassCard>
                                     </div>
@@ -180,47 +304,57 @@ export const RegionPanel = ({ region, onClose }) => {
                                                 </div>
                                             </div>
                                         </GlassCard>
-                                    </div>
-                                )}
-
-                                {activeTab === 'simulation' && (
-                                    <div className="animate-fade-in-up space-y-4">
-                                        <GlassCard className="border-accent-cyan/30 bg-accent-cyan/5 relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-accent-cyan/10 blur-[50px] rounded-full mix-blend-screen pointer-events-none"></div>
-                                            <div className="flex items-start gap-3 relative z-10">
-                                                <span className="material-symbols-outlined text-accent-cyan animate-spin-slow mt-0.5">memory</span>
-                                                <div>
-                                                    <h3 className="font-display text-accent-cyan font-bold tracking-wider mb-2 text-sm uppercase">Simulated Output</h3>
-                                                    <p className="text-slate-300 text-sm leading-relaxed font-mono">{region?.simulation}</p>
+                                        {/* Active sim events as challenges */}
+                                        {region?.simState?.activeEvents?.length > 0 && (
+                                            <GlassCard className="border-accent-red/20 bg-accent-red/5">
+                                                <h4 className="text-[10px] uppercase text-accent-red font-mono mb-2 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-xs animate-pulse">crisis_alert</span>
+                                                    Live Crisis Events
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {region.simState.activeEvents.map((evt, i) => (
+                                                        <div key={i} className="bg-black/30 rounded-lg p-2.5 border border-white/5 flex items-center justify-between">
+                                                            <div>
+                                                                <span className="text-white text-sm font-mono">{evt.type}</span>
+                                                                <span className="text-slate-500 text-[10px] font-mono ml-2">SEV-{evt.severity}</span>
+                                                            </div>
+                                                            <span className="text-accent-amber text-[10px] font-mono">{evt.duration}T remaining</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            </div>
-                                        </GlassCard>
-                                    </div>
-                                )}
-
-                                {activeTab === 'insights' && (
-                                    <div className="animate-fade-in-up space-y-4">
-                                        <GlassCard className="border-primary/30 bg-primary/5">
-                                            <div className="flex items-start gap-3">
-                                                <span className="material-symbols-outlined text-primary mt-0.5">lightbulb</span>
-                                                <div>
-                                                    <h3 className="font-display text-primary font-bold tracking-wider mb-2 text-sm uppercase">Intel Report</h3>
-                                                    <p className="text-slate-300 text-sm leading-relaxed">{region?.insights}</p>
-                                                </div>
-                                            </div>
-                                        </GlassCard>
+                                            </GlassCard>
+                                        )}
                                     </div>
                                 )}
 
                                 {activeTab === 'leaderboard' && (
                                     <div className="animate-fade-in-up space-y-2">
-                                        {[1, 2, 3, 4, 5].map((item) => (
-                                            <GlassCard key={item} noPadding className="px-4 py-3 flex items-center justify-between" hover>
+                                        <GlassCard className="mb-4">
+                                            <h4 className="text-[10px] uppercase text-slate-500 font-mono mb-2">Region Performance Score</h4>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-accent-cyan font-mono text-2xl font-bold">
+                                                    {region?.simState ? Math.floor(
+                                                        region.simState.stabilityIndex * 2000 +
+                                                        (region.simState.GDP / 1000000) * 100 +
+                                                        region.simState.infrastructureLevel * 50 +
+                                                        region.simState.technologyLevel * 50
+                                                    ) : '—'}
+                                                </span>
+                                                <span className="text-slate-500 text-xs font-mono">PTS</span>
+                                            </div>
+                                        </GlassCard>
+                                        {[
+                                            { label: 'Stability Score', value: region?.simState ? (region.simState.stabilityIndex * 2000).toFixed(0) : '—' },
+                                            { label: 'Economic Score', value: region?.simState ? ((region.simState.GDP / 1000000) * 100).toFixed(0) : '—' },
+                                            { label: 'Infrastructure Score', value: region?.simState ? (region.simState.infrastructureLevel * 50).toFixed(0) : '—' },
+                                            { label: 'Technology Score', value: region?.simState ? (region.simState.technologyLevel * 50).toFixed(0) : '—' },
+                                        ].map((item, idx) => (
+                                            <GlassCard key={idx} noPadding className="px-4 py-3 flex items-center justify-between" hover>
                                                 <div className="flex items-center gap-4">
-                                                    <span className="font-mono text-slate-500 w-4">{item}</span>
-                                                    <span className="font-bold text-white tracking-widest text-sm">OPERATIVE_{item}9X</span>
+                                                    <span className="font-mono text-slate-500 w-4">{idx + 1}</span>
+                                                    <span className="font-bold text-white tracking-widest text-sm">{item.label}</span>
                                                 </div>
-                                                <span className="text-accent-cyan font-mono text-sm">{Math.floor(Math.random() * 5000 + 1000)} PTS</span>
+                                                <span className="text-accent-cyan font-mono text-sm">{item.value} PTS</span>
                                             </GlassCard>
                                         ))}
                                     </div>

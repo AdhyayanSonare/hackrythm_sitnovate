@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GlassContainer } from '../GlassContainer/GlassContainer';
+import { formatGDP, formatResource } from '../../engine/simulationEngine';
 
-export const HUD = ({ turn, isRunning, isSimulating, toggleSimulation }) => {
+export const HUD = ({ turn, isRunning, isSimulating, toggleSimulation, globalMetrics, eventLog }) => {
     const [time, setTime] = useState('');
 
     // Update clock every second
@@ -11,6 +12,11 @@ export const HUD = ({ turn, isRunning, isSimulating, toggleSimulation }) => {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const stabilityPct = globalMetrics ? (globalMetrics.globalStability * 100).toFixed(1) : '—';
+    const stabilityColor = globalMetrics
+        ? globalMetrics.globalStability >= 0.7 ? 'text-accent-green' : globalMetrics.globalStability >= 0.4 ? 'text-accent-amber' : 'text-accent-red'
+        : 'text-slate-400';
 
     return (
         <div className="absolute top-0 left-0 p-6 md:p-8 z-40 w-full md:max-w-sm pointer-events-none">
@@ -28,8 +34,8 @@ export const HUD = ({ turn, isRunning, isSimulating, toggleSimulation }) => {
                             </span>
                         </h1>
                         <p className="caption text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_#4ade80]" />
-                            System Online
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_#4ade80] ${isRunning ? 'bg-green-400' : 'bg-slate-500'}`} />
+                            {isRunning ? 'Simulation Active' : 'System Idle'}
                         </p>
                     </div>
                 </div>
@@ -64,6 +70,51 @@ export const HUD = ({ turn, isRunning, isSimulating, toggleSimulation }) => {
                         </div>
                     </button>
                 </div>
+
+                {/* Global Metrics (shown when simulation has run at least 1 turn) */}
+                {globalMetrics && (
+                    <div className="border-t border-[var(--glass-border)] pt-3 flex flex-col gap-2">
+                        <span className="caption text-[var(--text-secondary)] flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">monitoring</span>
+                            Global Metrics
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-black/30 rounded-lg p-2 border border-white/5">
+                                <span className="text-[9px] uppercase text-slate-500 font-mono block">World GDP</span>
+                                <span className="font-mono text-sm text-accent-green">{formatGDP(globalMetrics.totalGDP)}</span>
+                            </div>
+                            <div className="bg-black/30 rounded-lg p-2 border border-white/5">
+                                <span className="text-[9px] uppercase text-slate-500 font-mono block">Stability</span>
+                                <span className={`font-mono text-sm ${stabilityColor}`}>{stabilityPct}%</span>
+                            </div>
+                            <div className="bg-black/30 rounded-lg p-2 border border-white/5">
+                                <span className="text-[9px] uppercase text-slate-500 font-mono flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[10px] text-blue-400">water_drop</span>Water
+                                </span>
+                                <span className="font-mono text-xs text-blue-300">{formatResource(globalMetrics.globalResourceLevels.water)}</span>
+                            </div>
+                            <div className="bg-black/30 rounded-lg p-2 border border-white/5">
+                                <span className="text-[9px] uppercase text-slate-500 font-mono flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[10px] text-green-400">restaurant</span>Food
+                                </span>
+                                <span className="font-mono text-xs text-green-300">{formatResource(globalMetrics.globalResourceLevels.food)}</span>
+                            </div>
+                        </div>
+
+                        {/* Recent Events Ticker */}
+                        {eventLog && eventLog.length > 0 && (
+                            <div className="bg-black/30 rounded-lg p-2 border border-white/5 max-h-20 overflow-y-auto hide-scrollbar">
+                                <span className="text-[9px] uppercase text-slate-500 font-mono block mb-1">Recent Events</span>
+                                {eventLog.slice(0, 3).map((evt, i) => (
+                                    <div key={i} className="flex items-center gap-1.5 text-[10px] font-mono leading-relaxed">
+                                        <span className={`w-1 h-1 rounded-full shrink-0 ${evt.type === 'Technological Breakthrough' ? 'bg-accent-green' : 'bg-accent-red'}`} />
+                                        <span className="text-slate-400 truncate">T{evt.turn}: {evt.type} → {evt.affectedRegion || evt.regionTarget}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </GlassContainer>
         </div>
     );

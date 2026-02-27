@@ -4,7 +4,7 @@ import { RegionPanel } from '../components/RegionPanel/RegionPanel';
 import { HUD } from '../components/HUD/HUD';
 import { NavigationPanel } from '../components/NavigationPanel/NavigationPanel';
 
-export const MainLayout = ({ regionsData, toggleSimulation, isRunning, isSimulating, turn }) => {
+export const MainLayout = ({ regionsData, toggleSimulation, isRunning, isSimulating, turn, globalMetrics, eventLog }) => {
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
     const [selectedRegion, setSelectedRegion] = useState(null);
 
@@ -51,6 +51,8 @@ export const MainLayout = ({ regionsData, toggleSimulation, isRunning, isSimulat
                 isRunning={isRunning}
                 isSimulating={isSimulating}
                 toggleSimulation={toggleSimulation}
+                globalMetrics={globalMetrics}
+                eventLog={eventLog}
             />
 
             {/* Bottom Right modular navigation panel */}

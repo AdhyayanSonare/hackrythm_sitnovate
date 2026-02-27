@@ -1,94 +1,104 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './index.css';
-import { regionsData } from './utils/regionsData';
+import { regionsData as initialRegionsData } from './utils/regionsData';
 import { MainLayout } from './layout/MainLayout';
+import { simulateTick, deriveStatus, formatPop, formatGDP, formatResource } from './engine/simulationEngine';
+
+const REGION_IDS = initialRegionsData.map(r => r.id);
 
 function App() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [turn, setTurn] = useState(1);
-  const [regions, setRegions] = useState(regionsData);
+  const [turn, setTurn] = useState(0);
+  const [regions, setRegions] = useState(initialRegionsData);
+  const [globalMetrics, setGlobalMetrics] = useState(null);
+  const [eventLog, setEventLog] = useState([]);
 
-  const handleSimulateTick = async () => {
-    if (isSimulating) return; // Prevent overlapping calls
+  // Refs to avoid stale closures in interval
+  const regionStatesRef = useRef([]);
+  const globalMetricsRef = useRef(null);
+  const turnRef = useRef(0);
+
+  const handleSimulateTick = useCallback(() => {
     setIsSimulating(true);
-    try {
-      const response = await fetch("https://lab.leapter.com/runtime/api/v1/2aece828-b181-42fc-ad6f-c794d322b50f/4e90117d-7ab7-4f0e-bde7-c5b980c11bd9/mcp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": "lpt_ro2X2Ry9Mi9oMmlnQYfXxgVHSYKWovvhwgGadTy3aU"
+
+    // Run simulation tick synchronously (it's pure math, very fast)
+    const nextTurn = turnRef.current + 1;
+    const result = simulateTick(
+      nextTurn,
+      regionStatesRef.current,
+      globalMetricsRef.current,
+      REGION_IDS
+    );
+
+    // Store raw states for next tick
+    regionStatesRef.current = result.regionStates;
+    globalMetricsRef.current = result.globalMetrics;
+    turnRef.current = nextTurn;
+
+    // Merge simulation state into display regions
+    setRegions(prevRegions => prevRegions.map((region, idx) => {
+      const simState = result.regionStates[idx];
+      if (!simState) return region;
+
+      const status = deriveStatus(simState.stabilityIndex);
+      return {
+        ...region,
+        aiFeed: simState.aiFeed,
+        simState: {
+          population: simState.population,
+          GDP: simState.GDP,
+          stabilityIndex: simState.stabilityIndex,
+          resourceStock: simState.resourceStock,
+          infrastructureLevel: simState.infrastructureLevel,
+          technologyLevel: simState.technologyLevel,
+          activeEvents: simState.activeEvents,
+          tradePartners: simState.tradePartners,
         },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "tools/call",
-          params: {
-            name: "world_simulation_logic",
-            arguments: {
-              currentTurn: turn,
-              previousGlobalMetrics: "Stable",
-              dynamicEvents: [],
-              previousRegionStates: [],
-              regions: regions.map(r => ({ name: r.name, id: r.id })),
-              instruction: "Generate individual AI thoughts (Neural Feed) for each of these 7 regions regarding their population trajectory, resource utilization, and geopolitical relations for this turn. Return a JSON object strictly keyed by region ID (e.g. 'central-core', 'snow-mountain-west'). Each value should be an object containing 'populationTrajectory', 'resourceUtilization', and 'geopoliticalRelations' strings."
-            }
-          },
-          id: 1
-        })
-      });
-      const data = await response.json();
+        // Update display stats from simulation
+        stats: {
+          ...region.stats,
+          pop: formatPop(simState.population),
+        },
+        status: status.label,
+        statusColor: status.color,
+      };
+    }));
 
-      if (data.result && data.result.content && !data.result.isError) {
-        try {
-          const text = data.result.content[0].text;
-          // Extract JSON if wrapped in markdown
-          const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-          const jsonString = jsonMatch ? jsonMatch[1] : text;
+    setGlobalMetrics(result.globalMetrics);
+    setTurn(nextTurn);
 
-          const parsedResult = JSON.parse(jsonString);
-          console.log("Simulation Result:", parsedResult);
-
-          setRegions(prevRegions => prevRegions.map(region => {
-            const feed = parsedResult[region.id];
-            if (feed) {
-              return { ...region, aiFeed: feed };
-            }
-            return region;
-          }));
-
-        } catch (e) {
-          console.error("Failed to parse Leapter response", e);
-        }
-      }
-      setTurn(prev => prev + 1);
-    } catch (e) {
-      console.error("Simulation failed", e);
-    } finally {
-      setIsSimulating(false);
+    // Append events to log
+    if (result.eventsThisTurn.length > 0) {
+      setEventLog(prev => [
+        ...result.eventsThisTurn.map(e => ({ ...e, turn: nextTurn })),
+        ...prev,
+      ].slice(0, 50)); // keep last 50
     }
-  };
+
+    setIsSimulating(false);
+  }, []);
 
   useEffect(() => {
     let intervalId;
     if (isRunning) {
-      // Create continuous loop every 8 seconds (to respect API limits)
       intervalId = setInterval(() => {
         handleSimulateTick();
-      }, 8000);
+      }, 2000); // 2-second ticks for smooth visual updates
     }
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isRunning, turn, isSimulating, regions]);
+  }, [isRunning, handleSimulateTick]);
 
-  const toggleSimulation = () => {
+  const toggleSimulation = useCallback(() => {
     if (!isRunning) {
       setIsRunning(true);
       handleSimulateTick(); // run immediately once
     } else {
       setIsRunning(false);
     }
-  };
+  }, [isRunning, handleSimulateTick]);
 
   return (
     <MainLayout
@@ -97,6 +107,8 @@ function App() {
       isRunning={isRunning}
       isSimulating={isSimulating}
       turn={turn}
+      globalMetrics={globalMetrics}
+      eventLog={eventLog}
     />
   );
 }
